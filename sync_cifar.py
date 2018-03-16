@@ -313,7 +313,6 @@ def train():
                 batch_xs_1, batch_ys_1 = next_batch(train_imgs, train_labs , FLAGS.batch_size)
                 batch_xs_2, batch_ys_2 = next_batch(train_imgs, train_labs,FLAGS.batch_size)
 
-                print batch_ys_2
 
                 _ , loss_value = sess.run([train_op , loss ] , feed_dict= {xs_[0] : batch_xs_1, ys_[0]: batch_ys_1 ,
                                                                            xs_[1] : batch_xs_2, ys_[0]: batch_ys_2 })
