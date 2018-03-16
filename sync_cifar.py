@@ -28,11 +28,16 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
 
 tf.app.flags.DEFINE_integer('batch_size' , 64 , """Number of batch_size""")
 tf.app.flags.DEFINE_boolean('use_fp16' , False , """use float16""")
+tf.app.flags.DEFINE_string('summary_dir' , './summary' , """folder to save tensorflow summary""")
+tf.app.flags.DEFINE_string('model_dir' , './model' , """folder to save tensorflow model""")
 
 train_filenames = glob.glob('./cifar_10/cifar-10-batches-py/data_batch*')
 test_filenames = glob.glob('./cifar_10/cifar-10-batches-py/test_batch*')
 train_imgs, train_labs = get_images_labels(*train_filenames)
 test_imgs, test_labs = get_images_labels(*test_filenames)
+
+train_imgs=train_imgs/255.
+test_imgs = test_imgs/255.
 
 
 def next_batch(imgs, labs, batch_size):
@@ -116,7 +121,7 @@ def inference(images ,n_classes , tower_name):
     # If we only ran this model on a single GPU, we could simplify this function
   # by replacing all instances of tf.get_variable() with tf.Variable().
     gpu_num = tower_name.split('_')[-1] # tower_name = tower_0 or tower_1
-    with tf.variable_scope('gpu_num_{}_conv1'.format(gpu_num)) as scope:
+    with tf.variable_scope('conv1') as scope:
         kernel = _variable_with_weight_decay('weights',shape=[5, 5, 3, 64],stddev=5e-2,wd=None)
         conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
         biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
@@ -129,7 +134,7 @@ def inference(images ,n_classes , tower_name):
         norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,name='norm1')
     # conv2
 
-    with tf.variable_scope('gpu_num_{}_conv2'.format(gpu_num)) as scope:
+    with tf.variable_scope('conv2') as scope:
         kernel = _variable_with_weight_decay('weights',
                                              shape=[5, 5, 64, 64],
                                              stddev=5e-2,
@@ -147,7 +152,7 @@ def inference(images ,n_classes , tower_name):
     reshape=tf.contrib.layers.flatten(top_conv)
 
 
-    with tf.variable_scope('gpu_num_{}_local3'.format(gpu_num)) as scope:
+    with tf.variable_scope('local3') as scope:
         # Move everything into depth so we can perform a single matrix multiply.
         dim=reshape.get_shape()[1]
         weights = _variable_with_weight_decay('weights', shape=[dim, 384],
@@ -158,7 +163,7 @@ def inference(images ,n_classes , tower_name):
 
 
     # local4
-    with tf.variable_scope('gpu_num_{}_local4'.format(gpu_num)) as scope:
+    with tf.variable_scope('local4') as scope:
         weights = _variable_with_weight_decay('weights', shape=[384, 192],
                                               stddev=0.04, wd=0.004)
         biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
@@ -171,7 +176,7 @@ def inference(images ,n_classes , tower_name):
       # and performs the softmax internally for efficiency.
 
     #softmax_linear
-    with tf.variable_scope('gpu_num_{}_softmax_linear'.format(gpu_num)) as scope:
+    with tf.variable_scope('softmax_linear') as scope:
         weights = _variable_with_weight_decay('weights', [192, n_classes],
                                               stddev=1/192.0, wd=None)
         biases = _variable_on_cpu('biases', [n_classes],
@@ -251,15 +256,11 @@ def train():
     with tf.Graph().as_default() , tf.device('/cpu:0'):
         #global step
         global_step = tf.get_variable( 'global_step',[],initializer=tf.constant_initializer(0) , trainable=False)
-
-
-
         num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
         decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
         lr = tf.train.exponential_decay(cifar10.INITIAL_LEARNING_RATE, global_step, decay_steps,
                                         cifar10.LEARNING_RATE_DECAY_FACTOR, staircase=True)
         opt = tf.train.GradientDescentOptimizer(lr)
-        
         # Get Images and labels for CIFAR-10.
         tower_grads = []
         xs_=[]
@@ -275,6 +276,7 @@ def train():
                         xs_.append(x_)
                         ys_.append(y_)
                         losses , total_loss= tower_loss(10, x_ , y_ , tower_name) # tower의 모든 losses을 return 한다
+                        tf.get_variable_scope().reuse_variables()
                         #total_loss = tf.add_n(losses, name='total_loss')
                         # (Optional) for tracking loss
                         # attech a scalar summary to all indivisual losses and the total loss
@@ -286,109 +288,55 @@ def train():
                         summaries = tf.get_collection(tf.GraphKeys.SUMMARIES , tower_scope) #  해당 tower의 graph을 가져온다.
                         grads = opt.compute_gradients(total_loss) # 모든 gradient에 대한 loss 가 있다
                         tower_grads.append(grads)
-            #sync point
-            grads=average_gradient(tower_grads=tower_grads)
-            summaries.append(tf.summary.scalar('learning_rate', lr))
-            for grad, var in grads:
-                if grad is not None:
-                    summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
-            apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-            for var in tf.trainable_variables():
-                summaries.append(tf.summary.histogram(var.op.name, var))
 
-            variable_averages = tf.train.ExponentialMovingAverage(
-                cifar10.MOVING_AVERAGE_DECAY, global_step)
-            variables_averages_op = variable_averages.apply(tf.trainable_variables())
-            train_op = tf.group(apply_gradient_op , variables_averages_op)
-            saver = tf.train.Saver(tf.global_variables())
-            summary_op = tf.summary.merge(summaries)
-            init=tf.global_variables_initializer()
-            sess = tf.Session(config=tf.ConfigProto(
-                allow_soft_placement=True,
-                log_device_placement=FLAGS.log_device_placement))
-            sess.run(init)
-
-            for step in range(FLAGS.max_steps):
-                start_time=time.time()
-                batch_xs_1, batch_ys_1 = next_batch(train_imgs, train_labs , FLAGS.batch_size)
-                batch_xs_2, batch_ys_2 = next_batch(train_imgs, train_labs,FLAGS.batch_size)
+        #sync point
+        grads=average_gradient(tower_grads=tower_grads)
+        summaries.append(tf.summary.scalar('learning_rate', lr))
+        for grad, var in grads:
+            if grad is not None:
+                summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
+        apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+        for var in tf.trainable_variables():
+            summaries.append(tf.summary.histogram(var.op.name, var))
 
 
-                _ , loss_value = sess.run([train_op , loss ] , feed_dict= {xs_[0] : batch_xs_1, ys_[0]: batch_ys_1 ,
-                                                                           xs_[1] : batch_xs_2, ys_[0]: batch_ys_2 })
+        print tf.global_variables()
+        variable_averages = tf.train.ExponentialMovingAverage(cifar10.MOVING_AVERAGE_DECAY, global_step)
+        variables_averages_op = variable_averages.apply(tf.trainable_variables())
+        train_op = tf.group(apply_gradient_op , variables_averages_op)
+        saver = tf.train.Saver(tf.global_variables())
+        summary_op = tf.summary.merge(summaries)
+        init=tf.global_variables_initializer()
+        sess = tf.Session(config=tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=FLAGS.log_device_placement))
+        sess.run(init)
+        summary_writer = tf.summary.FileWriter(FLAGS.train_dir , sess.graph)
+        for step in range(FLAGS.max_steps):
+            print step
+            start_time=time.time()
+            batch_xs_1, batch_ys_1 = next_batch(train_imgs, train_labs , FLAGS.batch_size)
+            batch_xs_2, batch_ys_2 = next_batch(train_imgs, train_labs,FLAGS.batch_size)
+            _ , loss_value = sess.run([train_op , total_loss ] , feed_dict= {xs_[0] : batch_xs_1, ys_[0]: batch_ys_1 ,
+                                                                       xs_[1] : batch_xs_2, ys_[1]: batch_ys_2 })
+            duration = time.time() - start_time
 
-            #print 'Consume time : {}'.format(time.time() - start_time)
+            if step % 10 ==0:
+                num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
+                examples_per_sec = num_examples_per_step / duration
+                sec_per_batch = duration / FLAGS.num_gpus
+                format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f ' 'sec/batch)')
+                print (format_str %(datetime.now() , step , loss_value , examples_per_sec , sec_per_batch))
 
-            """
-            tf.get_variable_scope().reuse_variables() ## **
-            summaries = tf.get_collection(tf.GraphKeys.SUMMARIES , scope)
-            grads = opt.compute_gradients(loss)
-            tower_loss.append(grads)
-            
-            grads = average_gradient(tower_grads) # cal the mean of each gradient, ## sync point across all towers
-            summaries.append(tf.summary.scalar('learning_rate', lr))
-    
+            if step % 100 ==0:
+                summary_str = sess.run(summary_op , feed_dict= {xs_[0] : batch_xs_1, ys_[0]: batch_ys_1 ,
+                                                                       xs_[1] : batch_xs_2, ys_[1]: batch_ys_2 })
+                summary_writer.add_summary(summary_str , step)
 
-
-
-
-
-            #add histogram
-            for grad , var in grads:
-                if grad is not None:
-                    summaries.append(tf.summary.histogram(var.op.name + '/gradients' ,grad))
+            if step % 1000 ==0 or (step + 1 ) == FLAGS.max_steps:
+                checkpoint_path = os.path.join(FLAGS.model_dir , 'model.ckpt')
+                saver.save(sess , checkpoint_path , global_step = step )
     
-            # Apply the gradients to adjust the shared variables
-            apply_gradient_op  = opt.apply_gradients(grads , global_step=global_step)
-    
-            # Add histograms for trainble variables.
-            for var in tf.trainable_variables():
-                summaries.append(tf.summary.histogram(var.op.name , var ))
-    
-            # Track the moving averages of all trainable variables.
-            variable_averages = tf.train.ExponentialMovingAverage(cifar10.MOVING_AVERAGE_DECAY , global_step)
-            variable_averages_op = variable_averages.apply(tf.trainable_variables())
-            train_op = tf.group(apply_gradient_op , variable_averages_op)
-    
-    
-    
-            saver = tf.train.Saver(var_list=tf.global_variables())
-            summary_op = tf.summary.merge(inputs=summaries)
-            init = tf.global_variables_initializer()
-    
-    
-            # Important!!!!
-            # Start running operations on the Graph. allow_soft_placement must be set to True to build towers on Gpu
-            sess = tf.Session(config = tf.ConfigProto(allow_soft_placement=True , log_device_placement=True))
-            sess.run(init)
-    
-    
-            tf.train.start_queue_runners(sess = sess)
-            summary_writer = tf.summary.FileWriter(FLAGS.train_dir , sess.graph)
-    
-            for step in xrange(FLAGS.max_step):
-                start_time = time.time()
-                _ , loss_value = sess.run(fetches = [train_op  , loss])
-                duration = time.time() - start_time
-    
-                assert not np.isnan(loss_value) , 'Model diverged with loss = Nan'
-    
-                if step % 10 ==0:
-                    num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
-                    examples_per_sec = num_examples_per_step / duration
-                    sec_per_batch = duration / FLAGS.num_gpus
-                    format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f ' 'sec/batch)')
-                    print (format_str %(datetime.now() , step , loss_value , examples_per_sec , sec_per_batch))
-    
-                if step % 100 ==0:
-                    summary_str = sess.run(summary_op)
-                    summary_writer.add_summary(summary_str , step )
-    
-                if step % 1000 ==0 or (step + 1 ) == FLAGS.max_steps:
-                    checkpoint_path = os.path.join(FLAGS.train_dir , 'model.ckpt')
-                    saver.save(sess , checkpoint_path , global_step = step )
-    
-            """
 def main(argv = None):
     train()
 
