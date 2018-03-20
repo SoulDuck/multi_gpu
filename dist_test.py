@@ -47,7 +47,7 @@ elif args.job=='worker':
 
         with tf.name_scope('train'):
             grad_op=tf.train.GradientDescentOptimizer(learning_rate=lr)
-
+            train_op = grad_op.minimize(cross_entropy , global_step=global_step)
             """
             rep_op = tf.train.SyncReplicasOptimizer(
                 grad_op,
@@ -85,6 +85,7 @@ elif args.job=='worker':
                 count =0
                 for i in range(batch_count):
                     batch_x, batch_y = mnist.train.next_batch(args.batch_size)
+
                     _, cost, summary, step = sess.run([train_op, cross_entropy, summary_op, global_step],
                                                       feed_dict={x_: batch_x, y_: batch_y})
                     writer.add_summary(summary, step)
