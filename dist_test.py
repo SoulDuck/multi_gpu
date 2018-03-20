@@ -81,7 +81,7 @@ elif args.job=='worker':
         frequency = 100
 
         with sv.prepare_or_wait_for_session(server.target) as sess:
-            writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
+            #writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
             epoch_time = time.time()
             for epoch in range(args.n_epoch):
                 batch_count = int(mnist.train.num_examples/args.batch_size)
@@ -91,7 +91,7 @@ elif args.job=='worker':
 
                     _, cost, summary, step = sess.run([train_op, cross_entropy, summary_op, global_step],
                                                       feed_dict={x_: batch_x, y_: batch_y})
-                    writer.add_summary(summary, step)
+                    #writer.add_summary(summary, step)
                     count +=1
                     if epoch % frequency == 0 or i+1 == batch_count:
                         elapsed_time = time.time() - epoch_time()
