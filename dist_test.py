@@ -22,7 +22,7 @@ elif args.job=='worker':
     from tensorflow.examples.tutorials.mnist import input_data
     lr = 0.001
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
+    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0/gpu:0" , cluster= cluster)):
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False,
                                       dtype=tf.int32)
         with tf.name_scope('input'):
