@@ -13,6 +13,8 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
     a=tf.Variable(3)
     b=tf.Variable(2)
     train_op=a*b
+
+
     hooks=[tf.train.StopAtStepHook(last_step=1000000)]
 
     # The MonitoredTrainingSession takes care of session initialization,
@@ -22,9 +24,11 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
                                            is_chief=(task_index == 0),
                                            checkpoint_dir="/tmp/train_logs",
                                            hooks=hooks) as mon_sess:
-      while not mon_sess.should_stop():
-        # Run a training step asynchronously.
-        # See `tf.train.SyncReplicasOptimizer` for additional details on how to
-        # perform *synchronous* training.
-        # mon_sess.run handles AbortedError in case of preempted PS.
-        mon_sess.run(train_op)
+        init = tf.initialize_all_variables()
+        mon_sess.run(init)
+        while not mon_sess.should_stop():
+            # Run a training step asynchronously.
+            # See `tf.train.SyncReplicasOptimizer` for additional details on how to
+            # perform *synchronous* training.
+            # mon_sess.run handles AbortedError in case of preempted PS.
+            mon_sess.run(train_op)
