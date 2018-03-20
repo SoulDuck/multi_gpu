@@ -5,7 +5,7 @@ parser=argparse.ArgumentParser()
 
 parser.add_argument('--job' , type=str)
 parser.add_argument('--logs_path ' , type = str , default='./logs')
-parser.add_argument('--n_epoch' ,  type = int , default = 10)
+parser.add_argument('--n_epoch' ,  type = int , default = 100000)
 parser.add_argument('--batch_size' ,  type = int , default = 60)
 
 args=parser.parse_args()
