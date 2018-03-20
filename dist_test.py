@@ -21,7 +21,7 @@ elif args.job=='worker':
     print 'Workers'
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
+    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0/cpu:0" , cluster= cluster)):
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False,
                                       dtype=tf.int32)
         with tf.name_scope('input'):
@@ -77,7 +77,7 @@ elif args.job=='worker':
         frequency = 100
         print("Variables initialized finished...")
         print 'Server target Address : {}'.format(server.target)
-        """
+
         sess=tf.Session(server.target)
         sess.run(init_op)
         batch_count = int(mnist.train.num_examples / args.batch_size)
@@ -105,6 +105,7 @@ elif args.job=='worker':
                 # perform *synchronous* training.
                 # mon_sess.run handles AbortedError in case of preempted PS.
                 mon_sess.run(train_op)
+        """
         """
         with sv.prepare_or_wait_for_session(server.target) as sess:
             writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
