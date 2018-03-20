@@ -80,12 +80,13 @@ elif args.job=='worker':
         print("Variables initialized finished...")
 
         sess=tf.Session(server.target)
+        batch_count = int(mnist.train.num_examples / args.batch_size)
         for i in range(batch_count):
-            batch_count = int(mnist.train.num_examples / args.batch_size)
             batch_x, batch_y = mnist.train.next_batch(args.batch_size)
 
             _, cost, summary, step = sess.run([train_op, cross_entropy, summary_op, global_step],
                                               feed_dict={x_: batch_x, y_: batch_y})
+
 
         """
         tf.
