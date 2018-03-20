@@ -15,8 +15,10 @@ cluster  = tf.train.ClusterSpec({"worker":["192.168.0.16:2222"] , "ps" : ["192.1
 server = tf.train.Server(cluster , job_name= 'worker' , task_index=task_index)
 
 if args.job == 'ps':
+    print 'Parameter Servers'
     server.join()
 elif args.job=='worker':
+    print 'Workers'
     from tensorflow.examples.tutorials.mnist import input_data
     lr = 0.001
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
@@ -75,6 +77,7 @@ elif args.job=='worker':
 
         sv = tf.train.Supervisor(is_chief=(task_index == 0),global_step=global_step,init_op=init_op)
         begin_time = time.time()
+
         frequency = 100
 
         with sv.prepare_or_wait_for_session(server.target) as sess:
