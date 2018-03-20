@@ -313,7 +313,6 @@ def train():
         sess.run(init)
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir , sess.graph)
         for step in range(FLAGS.max_steps):
-            print step
             start_time=time.time()
             batch_xs_1, batch_ys_1 = next_batch(train_imgs, train_labs , FLAGS.batch_size)
             batch_xs_2, batch_ys_2 = next_batch(train_imgs, train_labs,FLAGS.batch_size)
