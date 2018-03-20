@@ -79,6 +79,17 @@ elif args.job=='worker':
         frequency = 100
         print("Variables initialized finished...")
 
+        sess=tf.Session(server.target)
+        for i in range(batch_count):
+            batch_count = int(mnist.train.num_examples / args.batch_size)
+            batch_x, batch_y = mnist.train.next_batch(args.batch_size)
+
+            _, cost, summary, step = sess.run([train_op, cross_entropy, summary_op, global_step],
+                                              feed_dict={x_: batch_x, y_: batch_y})
+
+        """
+        tf.
+
         hooks = [tf.train.StopAtStepHook(last_step=1000000)]
 
         # The MonitoredTrainingSession takes care of session initialization,
@@ -94,6 +105,7 @@ elif args.job=='worker':
                 # perform *synchronous* training.
                 # mon_sess.run handles AbortedError in case of preempted PS.
                 mon_sess.run(train_op)
+        """
         """
         with sv.prepare_or_wait_for_session(server.target) as sess:
             writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
