@@ -13,16 +13,15 @@ task_index=0
 
 cluster  = tf.train.ClusterSpec({"worker":["192.168.0.16:2222"] , "ps" : ["192.168.0.4:2222"]})
 server = tf.train.Server(cluster , job_name= args.job , task_index=task_index)
-
+lr = 5
 if args.job == 'ps':
     print 'Parameter Servers'
     server.join()
 elif args.job=='worker':
     print 'Workers'
     from tensorflow.examples.tutorials.mnist import input_data
-    lr = 5
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
+    with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0/gpu:1" , cluster= cluster)):
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False,
                                       dtype=tf.int32)
         with tf.name_scope('input'):
