@@ -78,7 +78,22 @@ elif args.job=='worker':
         frequency = 100
         print("Variables initialized finished...")
 
+        hooks = [tf.train.StopAtStepHook(last_step=1000000)]
 
+        # The MonitoredTrainingSession takes care of session initialization,
+        # restoring from a checkpoint, saving to a checkpoint, and closing when done
+        # or an error occurs.
+        with tf.train.MonitoredTrainingSession(master=server.target,
+                                               is_chief=(task_index == 0),
+                                               checkpoint_dir="/tmp/train_logs",
+                                               hooks=hooks) as mon_sess:
+            while not mon_sess.should_stop():
+                # Run a training step asynchronously.
+                # See `tf.train.SyncReplicasOptimizer` for additional details on how to
+                # perform *synchronous* training.
+                # mon_sess.run handles AbortedError in case of preempted PS.
+                mon_sess.run(train_op)
+        """
         with sv.prepare_or_wait_for_session(server.target) as sess:
             writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
             epoch_time = time.time()
@@ -106,5 +121,6 @@ elif args.job=='worker':
             print("Final Cost: %.4f" % cost)
         sv.stop()
         print "done"
+        """
 else:
     raise AssertionError
