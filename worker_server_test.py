@@ -20,8 +20,7 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
     # The MonitoredTrainingSession takes care of session initialization,
     # restoring from a checkpoint, saving to a checkpoint, and closing when done
     # or an error occurs.
-    with tf.train.MonitoredTrainingSession(master=server.target,
-                                           is_chief=(task_index == 0),
+    with tf.train.MonitoredTrainingSession(master=server.target,is_chief=(task_index == 0),
                                            checkpoint_dir="/tmp/train_logs",
                                            hooks=hooks) as mon_sess:
         init = tf.initialize_all_variables()
@@ -31,4 +30,4 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
             # See `tf.train.SyncReplicasOptimizer` for additional details on how to
             # perform *synchronous* training.
             # mon_sess.run handles AbortedError in case of preempted PS.
-            mon_sess.run(train_op)
+            print mon_sess.run(train_op)
