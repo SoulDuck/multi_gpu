@@ -23,7 +23,8 @@ elif args.job=='worker':
     lr = 0.001
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
     with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
-        global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
+        global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False,
+                                      dtype=tf.int32)
         with tf.name_scope('input'):
             x_ = tf.placeholder(tf.float32, shape=[None, 784], name="x-input")
             # target 10 output classes
