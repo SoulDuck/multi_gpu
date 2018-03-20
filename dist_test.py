@@ -18,15 +18,11 @@ if args.job == 'ps':
     server.join()
 elif args.job=='worker':
     from tensorflow.examples.tutorials.mnist import input_data
+    lr = 0.001
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
     with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
         x_ = tf.placeholder(dtype=tf.float32, shape=[1], name='x_')
         y_ = tf.placeholder(dtype = tf.float32  ,shape=[1] ,name ='y_')
-        lr = tf.placeholer(dtype = tf.float32 ,name='lr')
-        a=tf.Variable(3)
-        b=tf.Variable(2)
-        train_op=a*b
-
         global_step = tf.get_variable('global_step' , []  , initializer=tf.constant_initializer(0) , trainable=False)
         with tf.name_scope('input'):
             x_ = tf.placeholder(tf.float32, shape=[None, 784], name="x-input")
