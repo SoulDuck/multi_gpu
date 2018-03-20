@@ -12,7 +12,7 @@ args=parser.parse_args()
 task_index=0
 
 cluster  = tf.train.ClusterSpec({"worker":["192.168.0.16:2222"] , "ps" : ["192.168.0.4:2222"]})
-server = tf.train.Server(cluster , job_name= 'worker' , task_index=task_index)
+server = tf.train.Server(cluster , job_name= args.job , task_index=task_index)
 
 if args.job == 'ps':
     print 'Parameter Servers'
@@ -60,7 +60,6 @@ elif args.job=='worker':
                 use_locking=True)
             rep_op.minimize(cross_entropy ,global_step=global_step)
             train_op.minimize(cross_entropy ,global_step=global_step)
-            
             """
         with tf.name_scope('Accuracy'):
             # accuracy
