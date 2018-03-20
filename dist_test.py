@@ -16,7 +16,7 @@ server = tf.train.Server(cluster , job_name= 'worker' , task_index=task_index)
 
 if args.job == 'ps':
     server.join()
-else:
+elif args.job=='worker':
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
     with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
