@@ -86,7 +86,7 @@ elif args.job=='worker':
 
             _, cost, summary, step = sess.run([train_op, cross_entropy, summary_op, global_step],
                                               feed_dict={x_: batch_x, y_: batch_y})
-
+            print cost
 
         """
         tf.
