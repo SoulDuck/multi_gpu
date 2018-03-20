@@ -2,13 +2,13 @@ import tensorflow as tf
 import argparse
 import time
 parser=argparse.ArgumentParser()
+
+parser.add_argument('--job' , type=str)
+parser.add_argument('--logs_path ' , type = str , default='./logs')
+parser.add_argument('--n_epoch' ,  type = int , default = 10)
+parser.add_argument('--batch_size' ,  type = int , default = 60)
+
 args=parser.parse_args()
-args.add_argument('--job' , type=str)
-args.add_argument('--logs_path ' , type = str , default='./logs')
-args.add_argument('--n_epoch' ,  type = int , default = 10)
-args.add_argument('--batch_size' ,  type = int , default = 60)
-
-
 task_index=0
 
 cluster  = tf.train.ClusterSpec({"worker":["192.168.0.16:2222"] , "ps" : ["192.168.0.4:2222"]})
