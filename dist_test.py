@@ -79,6 +79,7 @@ elif args.job=='worker':
         print("Variables initialized finished...")
         print 'Server target Address : {}'.format(server.target)
         sess=tf.Session(server.target)
+        sess.run(init_op)
         batch_count = int(mnist.train.num_examples / args.batch_size)
         for i in range(batch_count):
             batch_x, batch_y = mnist.train.next_batch(args.batch_size)
