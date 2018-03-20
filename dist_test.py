@@ -21,6 +21,7 @@ elif args.job=='worker':
     lr = 0.001
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
     with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0" , cluster= cluster)):
+        global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
         with tf.name_scope('input'):
             x_ = tf.placeholder(tf.float32, shape=[None, 784], name="x-input")
             # target 10 output classes
@@ -97,7 +98,7 @@ elif args.job=='worker':
                               " Cost: %.4f," % cost,
                               " AvgTime: %3.2fms" % float(elapsed_time * 1000 / frequency))
                         count = 0
-            print("Test-Accuracy: %2.2f" % sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
+            print("Test-Accuracy: %2.2f" % sess.run(accuracy, feed_dict={x_: mnist.test.images, y_: mnist.test.labels}))
             print("Total Time: %3.2fs" % float(time.time() - begin_time))
             print("Final Cost: %.4f" % cost)
         sv.stop()
