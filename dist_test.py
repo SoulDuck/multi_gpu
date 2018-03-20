@@ -73,12 +73,11 @@ elif args.job=='worker':
         # merge all summaries into a single "operation" which we can execute in a session
         summary_op = tf.summary.merge_all()
         init_op = tf.global_variables_initializer()
-        print("Variables initialized ...")
-
         sv = tf.train.Supervisor(is_chief=(task_index == 0),global_step=global_step,init_op=init_op)
         begin_time = time.time()
-
         frequency = 100
+        print("Variables initialized finished...")
+
 
         with sv.prepare_or_wait_for_session(server.target) as sess:
             writer = tf.summary.FileWriter(args.logs_path ,graph=tf.get_default_graph())
