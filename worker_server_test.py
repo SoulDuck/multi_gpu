@@ -23,7 +23,7 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
     with tf.train.MonitoredTrainingSession(master=server.target,is_chief=(task_index == 0),
                                            checkpoint_dir="/tmp/train_logs",
                                            hooks=hooks) as mon_sess:
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
         mon_sess.run(init)
         while not mon_sess.should_stop():
             # Run a training step asynchronously.
