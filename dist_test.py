@@ -109,3 +109,5 @@ elif args.job=='worker':
             print("Final Cost: %.4f" % cost)
         sv.stop()
         print "done"
+else:
+    raise AssertionError
