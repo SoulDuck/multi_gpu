@@ -14,7 +14,7 @@ with tf.device(tf.train.replica_device_setter(worker_device="/job:worker/task:0"
     b=tf.Variable(2)
     train_op=a*b
 
-
+    global_step = tf.contrib.framework.get_or_create_global_step()
     hooks=[tf.train.StopAtStepHook(last_step=1000000)]
 
     # The MonitoredTrainingSession takes care of session initialization,
